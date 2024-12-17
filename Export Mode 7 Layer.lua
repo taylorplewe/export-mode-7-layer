@@ -32,19 +32,19 @@ local validations = {
 	},
 }
 
-local errorItems = {}
+local errorDialogLines = {}
 for _, validationGroup in ipairs(validations) do
 	for _, validation in ipairs(validationGroup) do
 		if validation.check() then
-			table.insert(errorItems, "- " .. validation.text)
+			table.insert(errorDialogLines, "- " .. validation.text)
 			break
 		end
 	end
 end
 
-	if #errorItems > 0 then
-		table.insert(errorItems, 1, 'The script could not run due to the following reasons:')
-		app.alert{ title = 'Error', text = errorItems }
+	if #errorDialogLines > 0 then
+		table.insert(errorDialogLines, 1, 'The script could not run due to the following reasons:')
+		app.alert{ title = 'Error', text = errorDialogLines }
 		return true
 	end
 	return false
