@@ -115,7 +115,7 @@ function getExportDialogErrorLines()
 				check = function() return exportDlg.data.chrLayer == exportDlg.data.nameLayer end,
 			},
 		},
-		{
+		{ -- TODO get rid of this one
 			{
 				text = 'CHR (graphics) layer does not contain any graphical (pixel) data.',
 				check = function() return #tilemapLayersByName[exportDlg.data.chrLayer].cels == 0 end,
@@ -127,6 +127,7 @@ function getExportDialogErrorLines()
 				check = function() return #exportDlg.data.outFile == 0 end,
 			},
 		},
+		-- TODO check tilemap is 128 wide
 	}
 	return getErrorLinesFromValidationTable(validations)
 end
@@ -134,6 +135,7 @@ end
 function export()
 	local errorLines = getExportDialogErrorLines()
 	if #errorLines > 0 then
+		-- TODO may be able to replace this dialog with an alert
 		local errorDlg = Dialog('Can\'t Export')
 			:label{label='The following issues are prohibiting exporting:'}
 		for _, errorLine in ipairs(errorLines) do
@@ -145,21 +147,23 @@ function export()
 	else
 		exportDlg:close()
 
+		-- TODO warning alert: tilemap is shorter or taller than 128px
+		-- TODO warning alert: less/more than 128x128=16,384 tiles in tileset
+
+		-- TODO for both of the above cases, just fill with 0x00 i guess
+
 		chrLayer = tilemapLayersByName[exportDlg.data.chrLayer]
 		nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
 
 		-- write to output file
 		local outFile = io.open(exportDlg.data.outFile, "wb")
+		-- TODO get rid of chr layer entirely and just while loop here until tileset:tile(ind) returns nil or whatever
 		for tileInd in chrLayer.cels[1].image:pixels() do
 			local tileImage = chrLayer.tileset:tile(tileInd()).image
 			for px in tileImage:pixels() do
 				pixel = px()
 				outFile:write(string.char(pixel))
 			end
-
-
-			-- print(px())
-			-- outFile:write(string.char(px()))
 		end
 		outFile:close()
 	end
