@@ -4,11 +4,11 @@ local validations = {
 	{
 		{
 			text = 'There must be at least two layers.',
-			func = function() return #app.sprite.layers < 2 end,
+			check = function() return #app.sprite.layers < 2 end,
 		},
 		{
 			text = 'Both layers must be tilemaps and share the same tileset.',
-			func = function() return
+			check = function() return
 				not app.sprite.layers[1].isTilemap or
 				not app.sprite.layers[2].isTilemap or
 				app.sprite.layers[1].tileset ~= app.sprite.layers[2].tileset
@@ -16,7 +16,7 @@ local validations = {
 		},
 		{
 			text = 'Tilemap grid size must be 8x8.',
-			func = function() return
+			check = function() return
 				app.sprite.layers[1].tileset.grid.tileSize.width ~= 8 or
 				app.sprite.layers[1].tileset.grid.tileSize.height ~= 8 or
 				app.sprite.layers[2].tileset.grid.tileSize.width ~= 8 or
@@ -27,7 +27,7 @@ local validations = {
 	{
 		{
 			text = 'Sprite must be of color mode "Indexed".',
-			func = function() return app.sprite.colorMode ~= ColorMode.INDEXED end,
+			check = function() return app.sprite.colorMode ~= ColorMode.INDEXED end,
 		},
 	},
 }
@@ -35,7 +35,7 @@ local validations = {
 local errorItems = {}
 for _, validationGroup in ipairs(validations) do
 	for _, validation in ipairs(validationGroup) do
-		if validation.func() then
+		if validation.check() then
 			table.insert(errorItems, "- " .. validation.text)
 			break
 		end
