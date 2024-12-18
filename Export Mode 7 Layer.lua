@@ -28,8 +28,8 @@ if (function()
 	local validations = {
 		{
 			{
-				text = 'There must be at least two tilemap layers.',
-				check = function() return #tilemapLayerNames < 2 end,
+				text = 'There must be at least one tilemap layer.',
+				check = function() return #tilemapLayerNames < 1 end,
 			},
 		},
 		{
@@ -67,21 +67,9 @@ end)() then return end
 -- open export dialog
 exportDlg = Dialog('Export Mode 7 Layer Binary')
 	:combobox{
-		id='chrLayer',
-		label='CHR (graphics) layer:',
-		option=tilemapLayerNames[0],
-		options=tilemapLayerNames,
-		onchange=updateDialog
-	}
-	:label{
-		text='* Only tilemap layers appear in this list.'
-	}
-	:combobox{
 		id='nameLayer',
 		label='NAME (tilemap) layer:',
-		option=tilemapLayerNames[1],
 		options=tilemapLayerNames,
-		onchange=updateDialog
 	}
 	:label{
 		text='* Only tilemap layers appear in this list.'
@@ -107,27 +95,20 @@ function getExportDialogErrorLines()
 	local validations = {
 		{
 			{
-				text = 'Both layers must share the same tileset.',
-				check = function() return tilemapLayersByName[exportDlg.data.chrLayer].tileset ~= tilemapLayersByName[exportDlg.data.nameLayer].tileset end,
-			},
-			{
-				text = 'CHR (graphics) layer and NAME (tilemap) layer must be different.',
-				check = function() return exportDlg.data.chrLayer == exportDlg.data.nameLayer end,
-			},
-		},
-		{ -- TODO get rid of this one
-			{
-				text = 'CHR (graphics) layer does not contain any graphical (pixel) data.',
-				check = function() return #tilemapLayersByName[exportDlg.data.chrLayer].cels == 0 end,
-			}
-		},
-		{
-			{
 				text = 'No output file selected.',
 				check = function() return #exportDlg.data.outFile == 0 end,
 			},
 		},
-		-- TODO check tilemap is 128 wide
+		{
+			{
+				text = 'Tilemap layer has no content.',
+				check = function() return #tilemapLayersByName[exportDlg.data.nameLayer].cels == 0 end,
+			},
+			{
+				text = 'Tilemap layer\'s content must be 128 tiles (1,024px) wide.',
+				check = function() return tilemapLayersByName[exportDlg.data.nameLayer].cels[1].bounds.width ~= 128*8 end,
+			},
+		},
 	}
 	return getErrorLinesFromValidationTable(validations)
 end
@@ -135,36 +116,103 @@ end
 function export()
 	local errorLines = getExportDialogErrorLines()
 	if #errorLines > 0 then
-		-- TODO may be able to replace this dialog with an alert
-		local errorDlg = Dialog('Can\'t Export')
-			:label{label='The following issues are prohibiting exporting:'}
-		for _, errorLine in ipairs(errorLines) do
-			errorDlg:label{label=errorLine}
-		end
-		errorDlg
-			:button{text='Close'}
-			:show()
+		table.insert(errorLines, 1, 'The following issues are prohibiting exporting:')
+		app.alert{ title = 'Can\'t Export', text=errorLines}
 	else
-		exportDlg:close()
+		if not showWarningsAndProceed() then
+			return
+		end
 
-		-- TODO warning alert: tilemap is shorter or taller than 128px
-		-- TODO warning alert: less/more than 128x128=16,384 tiles in tileset
-
-		-- TODO for both of the above cases, just fill with 0x00 i guess
-
-		chrLayer = tilemapLayersByName[exportDlg.data.chrLayer]
-		nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
+		-- try to open output file
+		local nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
+		local outFileName = exportDlg.data.outFile
+		local outFile = io.open(exportDlg.data.outFile, "wb")
+		if not outFile then
+			app.alert{title='File open error', text={'Could not open file:', '', outFileName, ''}}
+			return
+		end
 
 		-- write to output file
-		local outFile = io.open(exportDlg.data.outFile, "wb")
-		-- TODO get rid of chr layer entirely and just while loop here until tileset:tile(ind) returns nil or whatever
-		for tileInd in chrLayer.cels[1].image:pixels() do
-			local tileImage = chrLayer.tileset:tile(tileInd()).image
-			for px in tileImage:pixels() do
-				pixel = px()
-				outFile:write(string.char(pixel))
+		-- CHR portion
+		local tileInd = 1
+		local tile = nameLayer.tileset:tile(tileInd)
+		local i = 0
+		while i < 16384 do
+			if tile ~= nil then
+				-- will always be 8x8 px at this point
+				for px in tile.image:pixels() do
+					outFile:write(string.char(0x00))
+					outFile:write(string.char(px()))
+					i = i + 1
+				end
+				tileInd = tileInd + 1 -- TODO try ++
+				tile = nameLayer.tileset:tile(tileInd)
+			else
+				while i < 16384 do
+					outFile:write(string.char(0x00))
+					outFile:write(string.char(0x00))
+					i = i + 1
+				end
 			end
 		end
+		-- NAME portion
+		i = 0
+		outFile:seek('set') -- go back to beginning of file
+		for px in nameLayer.cels[1].image:pixels() do
+			outFile:write(string.char(px()))
+			outFile:seek('cur', 1) -- skip over CHR byte
+			i = i + 1
+			if i >= 16384 then break end
+		end
 		outFile:close()
+
+		-- show success alert & close export dialog
+		app.alert{title='Export Success', text={'Mode 7 binary written to:', '', outFileName, ''}}
+		exportDlg:close()
 	end
+end
+
+function showWarningsAndProceed()
+	nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
+
+	-- tilemap layer content is not 128 tiles tall
+	if nameLayer.cels[1].bounds.height < 128*8 then
+		if not showWarningDialogAndProceed({'NAME (tilemap) layer content is less than 128 tiles (1,024px) tall.', 'Empty space will be filled with 0\'s.'})
+			then return false end
+	elseif nameLayer.cels[1].bounds.height > 128*8 then
+		if not showWarningDialogAndProceed({'NAME (tilemap) layer content is more than 128 tiles (1,024px) tall.', 'Part of the tilemap will be cut off in the binary.'})
+			then return false end
+	end
+
+	-- tileset contains less than 128x128 tiles
+	if not nameLayer.tileset:tile(16384) then
+		if not showWarningDialogAndProceed({'Tileset contains less than 128x128 (16,384) tiles.', 'Empty space will be filled with 0\'s.'})
+			then return false end
+	elseif nameLayer.tileset:tile(16385) then
+		if not showWarningDialogAndProceed({'Tileset contains more than 128x128 (16,384) tiles.', 'Only the first 16,384 tiles will appear in the binary.'})
+			then return false end
+	end
+
+	return true
+end
+
+function showWarningDialogAndProceed(warningLines)
+	local dlg = Dialog('Warning')
+	for _, line in ipairs(warningLines) do
+		dlg:label{
+			label=line,
+			hexpand=true,
+		}
+	end
+	dlg:button{
+		id='proceed',
+		text='Proceed',
+		focus=true,
+	}
+	dlg:button{
+		id='cancel',
+		text='Cancel',
+	}
+	dlg:show()
+	if dlg.data.proceed then return true else return false end
 end
