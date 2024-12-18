@@ -98,9 +98,7 @@ exportDlg = Dialog('Export Mode 7 Layer Binary')
 		label='NAME (tilemap) layer:',
 		options=tilemapLayerNames,
 	}
-	:label{
-		text='* Only tilemap layers appear in this list.'
-	}
+	:label{ text='* Only tilemap layers appear in this list.' }
 	:file{
 		id='outFile',
 		label='Out file (.bin):',
@@ -113,17 +111,14 @@ exportDlg = Dialog('Export Mode 7 Layer Binary')
 		text='Export',
 		onclick=export
 	}
-	:button{
-		text='Cancel',
-	}
-	:show{wait=false}
+	:button{ text='Cancel', }
+	:show{ wait=false } -- TODO might be able to not wait=false
 
 function export()
 	if not validateForExport() then return end
 	if not showExportWarningsAndProceed() then return end
 
 	-- try to open output file
-	local nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
 	local outFileName = exportDlg.data.outFile
 	local outFile = io.open(exportDlg.data.outFile, "wb")
 	if not outFile then
@@ -132,37 +127,37 @@ function export()
 	end
 
 	-- write to output file
+	local nameLayer = tilemapLayersByName[exportDlg.data.nameLayer]
+	local outFileWordInd = 0
 	-- CHR portion
-	local tileInd = 1
-	local tile = nameLayer.tileset:tile(tileInd)
-	local i = 0
-	while i < 16384 do
-		if tile ~= nil then
-			-- will always be 8x8 px at this point
-			for px in tile.image:pixels() do
-				outFile:write(string.char(0x00))
-				outFile:write(string.char(px()))
-				i = i + 1
-			end
-			tileInd = tileInd + 1 -- TODO try ++
-			tile = nameLayer.tileset:tile(tileInd)
-		else
-			while i < 16384 do
-				outFile:write(string.char(0x00))
-				outFile:write(string.char(0x00))
-				i = i + 1
+		local chrTileInd = 1
+		local tile = nameLayer.tileset:tile(chrTileInd)
+		while outFileWordInd < 16384 do
+			if tile ~= nil then
+				-- will always be 8x8 px at this point
+				for px in tile.image:pixels() do
+					outFile:write(string.char(0x00)) -- placeholder for NAME byte
+					outFile:write(string.char(px()))
+					outFileWordInd = outFileWordInd + 1
+				end
+				chrTileInd = chrTileInd + 1
+				tile = nameLayer.tileset:tile(chrTileInd)
+			else
+				while outFileWordInd < 16384 do
+					outFile:write(string.char(0x00, 0x00))
+					outFileWordInd = outFileWordInd + 1
+				end
 			end
 		end
-	end
 	-- NAME portion
-	i = 0
-	outFile:seek('set') -- go back to beginning of file
-	for px in nameLayer.cels[1].image:pixels() do
-		outFile:write(string.char(px()))
-		outFile:seek('cur', 1) -- skip over CHR byte
-		i = i + 1
-		if i >= 16384 then break end
-	end
+		outFileWordInd = 0
+		outFile:seek('set') -- go back to beginning of file
+		for nameTileInd in nameLayer.cels[1].image:pixels() do
+			outFile:write(string.char(nameTileInd()))
+			outFile:seek('cur', 1) -- skip over CHR byte
+			outFileWordInd = outFileWordInd + 1
+			if outFileWordInd >= 16384 then break end
+		end
 	outFile:close()
 
 	-- show success alert & close export dialog
