@@ -1,4 +1,4 @@
-# export-mode-7-layer
+# Export Mode 7 Layer Binary
 Aseprite script for exporting an SNES Mode 7 layer binary
 
 As described on [page A-11 of the official SNES development manual](https://archive.org/details/SNESDevManual/book1/page/n205), a Mode 7 background layer is a 32KiB (32,768 byte) block of VRAM comprised of the following binary format:
