@@ -9,7 +9,7 @@ function validateAndShowErrorDialog(validations, errorDialogHeaderText)
 	end
 	if #errorLines > 0 then
 		table.insert(errorLines, 1, errorDialogHeaderText)
-		app.alert{ title='ERROR - Export Mode 7 Layer Binary', text=errorLines}
+		app.alert{ title='ERROR - Export Mode 7 Layer Binary', text=errorLines }
 		return false
 	end
 	return true
@@ -55,19 +55,19 @@ function showExportWarningsAndProceed()
 
 	-- tilemap layer content is not 128 tiles tall
 	if nameLayer.cels[1].bounds.height < 128*8 then
-		if not showWarningDialogAndProceed({'NAME (tilemap) layer content is less than 128 tiles (1,024px) tall.', 'Empty space will be filled with 0\'s.'})
+		if not showWarningDialogAndProceed({ 'NAME (tilemap) layer content is less than 128 tiles (1,024px) tall.', 'Empty space will be filled with 0\'s.' })
 			then return false end
 	elseif nameLayer.cels[1].bounds.height > 128*8 then
-		if not showWarningDialogAndProceed({'NAME (tilemap) layer content is more than 128 tiles (1,024px) tall.', 'Part of the tilemap will be cut off in the binary.'})
+		if not showWarningDialogAndProceed({ 'NAME (tilemap) layer content is more than 128 tiles (1,024px) tall.', 'Part of the tilemap will be cut off in the binary.' })
 			then return false end
 	end
 
 	-- tileset contains less than 128x128 tiles
 	if not nameLayer.tileset:tile(16384) then
-		if not showWarningDialogAndProceed({'Tileset contains less than 128x128 (16,384) tiles.', 'Empty space will be filled with 0\'s.'})
+		if not showWarningDialogAndProceed({ 'Tileset contains less than 128x128 (16,384) tiles.', 'Empty space will be filled with 0\'s.' })
 			then return false end
 	elseif nameLayer.tileset:tile(16385) then
-		if not showWarningDialogAndProceed({'Tileset contains more than 128x128 (16,384) tiles.', 'Only the first 16,384 tiles will appear in the binary.'})
+		if not showWarningDialogAndProceed({ 'Tileset contains more than 128x128 (16,384) tiles.', 'Only the first 16,384 tiles will appear in the binary.' })
 			then return false end
 	end
 
@@ -122,7 +122,7 @@ function export()
 	local outFileName = exportDlg.data.outFile
 	local outFile = io.open(exportDlg.data.outFile, "wb")
 	if not outFile then
-		app.alert{title='File open error', text={'Could not open file:', '', outFileName, ''}}
+		app.alert{ title='File open error', text={ 'Could not open file:', '', outFileName, '' } }
 		return
 	end
 
@@ -161,6 +161,6 @@ function export()
 	outFile:close()
 
 	-- show success alert & close export dialog
-	app.alert{title='Export Success', text={'Mode 7 binary written to:', '', outFileName, ''}}
+	app.alert{ title='Export Success', text={ 'Mode 7 binary written to:', '', outFileName, '' } }
 	exportDlg:close()
 end
