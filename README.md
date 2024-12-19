@@ -17,3 +17,5 @@ As such, your Aseprite project must meet certain criteria in order to export in 
 - there must be at least one tilemap layer.
 - that layer's tileset must be an 8x8 grid.
 - the background NAME (tilemap) layer must be 128 tiles (1,024px) wide.
+
+![screenshot](dialog.png)
