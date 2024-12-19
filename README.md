@@ -10,7 +10,7 @@ byte 0 1 2 3 4 ...
 ```
 where
 - `n` = the NAME (or tilemap) data, each byte referring to an 8x8 tile in the tileset made from the CHR data, ultimately creating a 128x128 tile background; and
-- `c` = the CHR (or graphical) data; 8bpp color data where each pixel refers to one color in the 256-color palette in VRAM. This goes line by line _one 8x8 tile at a time_.
+- `c` = the CHR (or graphical) data; 8bpp color data where each byte (pixel) refers to one color in the 256-color palette in VRAM. This goes line by line _one 8x8 tile at a time_.
 
 As such, your Aseprite project must meet certain criteria in order to export in said format:
 - project must be "Indexed" color mode.
