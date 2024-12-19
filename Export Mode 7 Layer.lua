@@ -63,11 +63,13 @@ function showExportWarningsAndProceed()
 	end
 
 	-- tileset contains less than 128x128 tiles
-	if not nameLayer.tileset:tile(16384) then
-		if not showWarningDialogAndProceed({ 'Tileset contains less than 128x128 (16,384) tiles.', 'Empty space will be filled with 0\'s.' })
+	-- TODO not sure if this should be 256 or 255
+	if not nameLayer.tileset:tile(256) then
+		if not showWarningDialogAndProceed({ 'Tileset contains less than 256 tiles.', 'Empty space will be filled with 0\'s.' })
 			then return false end
-	elseif nameLayer.tileset:tile(16385) then
-		if not showWarningDialogAndProceed({ 'Tileset contains more than 128x128 (16,384) tiles.', 'Only the first 16,384 tiles will appear in the binary.' })
+	-- TODO more than 256 should be error not warning
+	elseif nameLayer.tileset:tile(257) then
+		if not showWarningDialogAndProceed({ 'Tileset contains more than 256 tiles.', 'Only the first 256 tiles will appear in the binary.' })
 			then return false end
 	end
 
@@ -153,7 +155,7 @@ function export()
 		outFileWordInd = 0
 		outFile:seek('set') -- go back to beginning of file
 		for nameTileInd in nameLayer.cels[1].image:pixels() do
-			outFile:write(string.char(nameTileInd()))
+			outFile:write(string.char(nameTileInd()-1)) -- Aseprite numbers the tiles 1-256; SNES numbers them 0-255
 			outFile:seek('cur', 1) -- skip over CHR byte
 			outFileWordInd = outFileWordInd + 1
 			if outFileWordInd >= 16384 then break end
